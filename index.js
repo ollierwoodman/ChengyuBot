@@ -6,7 +6,7 @@ const got = require('got');
 var fs = require('fs');
 
 //GLOBAL VARS
-const _configFile = require('./config.json');
+const _configFile = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
 var _chengyuDict = {
 	hanzi: "err",
 	pinyin: "err",
@@ -28,17 +28,40 @@ client.once('ready', () => {
 
 //main resresh loop
 function main() {
-	var chengyuFile = JSON.parse(fs.readFileSync('./chengyu.json', 'utf8')); //check the chengyu file every loop to see if the current scraped chengyu is different
+	
+	var chengyuFile = returnJSONObjectFromJSONFile('./chengyu.json');
+	if (chengyuFile === null) {
+		chengyuFile = {hanzi:"err"};
+	}
+
 	if (chengyuFile.hanzi !== _chengyuDict.hanzi) {
 		//if the saved chengyu is different from the current, overwrite the chengyu file and send the new chengyu message to the daily chengyu channel 
-		overwriteChengyuFile(_chengyuDict.hanzi, _chengyuDict.pinyin, _chengyuDict.english, _chengyuDict.url)
 		sendChannelMessage();
+		overwriteChengyuFile(_chengyuDict.hanzi, _chengyuDict.pinyin, _chengyuDict.english, _chengyuDict.url)
 	}
 	else {
 		console.log('Chengyu not new, no update.');
 	}
 	//get the daily chengyu for the next loop to check
 	getDailyChengyuURL();
+}
+
+function returnJSONObjectFromJSONFile(path) {
+	var strFileContent = fs.readFileSync(path, 'utf8');
+	if (isValidJSONString(strFileContent)) {
+		return JSON.parse(strFileContent);
+	} else {
+		return null;
+	}
+}
+
+function isValidJSONString(str) {
+	try {
+		JSON.parse(str);
+	} catch (e) {
+		return false;
+	}
+	return true;
 }
 
 function overwriteChengyuFile(hanzi, pinyin, english, url) {
@@ -53,12 +76,10 @@ function overwriteChengyuFile(hanzi, pinyin, english, url) {
 	jsonString = JSON.stringify(chengyuObj); //convert object to a string in the json format 
 
 	//write json string to file
-	var fs = require('fs');
 	fs.writeFile ("./chengyu.json", JSON.stringify(chengyuObj), function(err) {
 		if (err) throw err;
 		console.log('Chengyu file overwritten');
 		}
-		
 	);
 }
 
@@ -132,13 +153,13 @@ function sendChannelMessage() {
 		//send embed with role ping
 		client.channels.cache.get(_configFile.channelId).send('<@&' + _configFile.chengyuRoleId + '> 今天的成语来啦', { embed: _dailyChengyuEmbed })
 		.then(console.log('Chengyu sent to channel with role ping'))
-		.catch(err);
+		.catch(console.error);
 	}
 	else {
 		//send embed without role ping
 		client.channels.cache.get(_configFile.channelId).send('今天的成语来啦', { embed: _dailyChengyuEmbed })
 		.then(console.log('Chengyu sent to channel without role ping'))
-		.catch(err);
+		.catch(console.error);
 	}
 }
 
