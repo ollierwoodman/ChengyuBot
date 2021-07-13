@@ -36,14 +36,14 @@ function main() {
 
 	if (chengyuFile.hanzi !== _chengyuDict.hanzi) {
 		//if the saved chengyu is different from the current, overwrite the chengyu file and send the new chengyu message to the daily chengyu channel 
-		sendChannelMessage();
+		sendDailyChengyuMessage();
 		overwriteChengyuFile(_chengyuDict.hanzi, _chengyuDict.pinyin, _chengyuDict.english, _chengyuDict.url)
 	}
 	else {
-		console.log('Chengyu not new, no update.');
+		logInConsoleWithTime('Chengyu not new, no update.');
 	}
 	//get the daily chengyu for the next loop to check
-	getDailyChengyuURL();
+	getDailyChengyuURL().then(logInConsoleWithTime("HERE"));
 }
 
 function returnJSONObjectFromJSONFile(path) {
@@ -78,7 +78,7 @@ function overwriteChengyuFile(hanzi, pinyin, english, url) {
 	//write json string to file
 	fs.writeFile ("./chengyu.json", JSON.stringify(chengyuObj), function(err) {
 		if (err) throw err;
-		console.log('Chengyu file overwritten');
+		logInConsoleWithTime('Chengyu file overwritten');
 		}
 	);
 }
@@ -96,12 +96,12 @@ function getDailyChengyuURL() {
 		_chengyuDict.english = $('div[class=ctCyRDef]').text();
 		_chengyuDict.url = $('a[class=ctCyRMoreA]').attr('href');
 
-		console.log('Daily chengyu scraped.');
+		logInConsoleWithTime('Daily chengyu scraped.');
 		
 		createDailyChengyuEmbed(_chengyuDict.url); //used the scraped url for the chengyu's full dictionary entry to create the embed
 
 	}).catch(err => {0-
-		console.log('Scraping failed.');
+		logInConsoleWithTime('Scraping failed.');
 	});
 }
 
@@ -126,7 +126,7 @@ function createDailyChengyuEmbed(url) {
 			_dailyChengyuEmbed.addField(details.eq(i * 2).text(), details.eq(i * 2 + 1).text());
 		}
 
-		console.log('Channel embed created with extra details.');
+		logInConsoleWithTime('Channel embed created with extra details.');
 
 	//if the dictionary entry scrape fails, create a basic chengyu message
 	}).catch(err => {
@@ -142,23 +142,23 @@ function createDailyChengyuEmbed(url) {
 			timestamp: new Date(),
 		};
 
-		console.log('Channel embed created without extra details.');
+		logInConsoleWithTime('Channel embed created without extra details.');
 	});
 }
 
 //sends the daily chengyu embed to the designated channel
-function sendChannelMessage() {
+function sendDailyChengyuMessage() {
 	//if a pingable chengyu role is included in the config file
 	if (_configFile.chengyuRoleId) {
 		//send embed with role ping
 		client.channels.cache.get(_configFile.channelId).send('<@&' + _configFile.chengyuRoleId + '> 今天的成语来啦', { embed: _dailyChengyuEmbed })
-		.then(console.log('Chengyu sent to channel with role ping'))
+		.then(logInConsoleWithTime('Chengyu sent to channel with role ping'))
 		.catch(console.error);
 	}
 	else {
 		//send embed without role ping
 		client.channels.cache.get(_configFile.channelId).send('今天的成语来啦', { embed: _dailyChengyuEmbed })
-		.then(console.log('Chengyu sent to channel without role ping'))
+		.then(logInConsoleWithTime('Chengyu sent to channel without role ping'))
 		.catch(console.error);
 	}
 }
@@ -185,7 +185,7 @@ function createSearchChengyuMessage(searchphrase) {
 			chengyuEmbed.addField(details.eq(i * 2).text(), details.eq(i * 2 + 1).text());
 		}
 
-		console.log('Chengyu search successful');
+		logInConsoleWithTime('Chengyu search successful');
 
 		return chengyuEmbed;
 
@@ -199,23 +199,28 @@ function createSearchChengyuMessage(searchphrase) {
 			},
 			description: ('I could not find any chengyu called "' + message.content.slice(4) + '"\n' + '尴尬了，我没能搜到这个成语\n\nMaybe you can find it on Baidu (百度)\n百度一下，你就知道\n\n[Click here to search Baidu!](https://baike.baidu.com/search?word=' + message.content.slice(4) + '&pn=0&rn=0&enc=utf8)'),
 		};
-		console.log('Chengyu search failed');
+		logInConsoleWithTime('Chengyu search failed');
 
 		return chengyuEmbed;
 	});
+}
+
+function logInConsoleWithTime(string) {
+	const timeNow = new Date();
+	logInConsoleWithTime(`${timeNow.getHours()}:${timeNow.getMinutes()};${timeNow.getSeconds()} ` + string);
 }
 
 client.on('message', message => {
 	if (message.content.slice(0, 3) === '!cy' || message.content.slice(0, 3) === '！cy') {
 
 		message.channel.send({ embed: createSearchChengyuMessage(message.content.slice(4)) })
-			.then(console.log(message.author.username + ' searched for a chengyu'))
+			.then(logInConsoleWithTime(message.author.username + ' searched for a chengyu'))
 			.catch(console.error);
 
 	}
 	else if (message.content.includes(_chengyuDict.hanzi)) {
 		message.react(message.guild.emojis.cache.get(_configFile.orangeEmojiId))
-			.then(console.log(message.author.username + ' used the daily chengyu'))
+			.then(logInConsoleWithTime(message.author.username + ' used the daily chengyu'))
 			.catch(console.error);
 	}
 });
