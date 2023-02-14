@@ -3,13 +3,13 @@
   "version": "2.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node ./index.js"
+    "start": "node ."
   },
   "keywords": [],
   "author": "Oreo",
   "license": "ISC",
+  "description": " A Discord bot to help members of my Discord server learn Chinese idioms (chengyu). Server link: https://discord.gg/QzTgcuf9np",
   "dependencies": {
-    "discord.js": "^14"
-  },
-  "description": " A Discord bot to help members of my Discord server learn Chinese idioms (chengyu). Server link: https://discord.gg/QzTgcuf9np"
+    "discord.js": "^12.5.3"
+  }
 }

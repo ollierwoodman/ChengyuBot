@@ -16,12 +16,13 @@ client.login(_config.loginToken);
 
 //executes once client is logged in
 client.once('ready', () => {
-	console.log(`Ready! Logged in as ${c.user.tag}`);
+	console.log(`Ready! Logged in as ${client.user.tag}`);
 
 	initDailyChengyuIndexValue();
 
 	const millisecondsInADay = 86400000;
-	const timeToNewDailyChengyu = new Date(now.getFullYear(), now.getMonth(), now.getDate(), _config.hourToSendDailyChengyuMessageUTC, 0, 0, 0) - now;
+	const timeNow = new Date();
+	const timeToNewDailyChengyu = new Date(timeNow.getFullYear(), timeNow.getMonth(), timeNow.getDate(), _config.hourToSendDailyChengyuMessageUTC, 0, 0, 0) - timeNow;
 	if (timeToNewDailyChengyu < 0) {
 		timeToNewDailyChengyu += millisecondsInADay; // it's after 10am, try 10am tomorrow.
 	}
@@ -43,7 +44,7 @@ function initDailyChengyuIndexValue() {
 		_currentDailyChengyuIndex = FALLBACK_DAILY_CHENGYU_INDEX;
 	}
 	
-	if (_currentDailyChengyuIndex >= _chengyuDict.phrases.length) {
+	if (_currentDailyChengyuIndex >= _chengyuDict.entries.length) {
 		_currentDailyChengyuIndex = FALLBACK_DAILY_CHENGYU_INDEX;
 	}
 }
