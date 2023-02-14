@@ -88,11 +88,12 @@ function buildChengyuEmbed(chengyuIndex) {
 		.setTitle(`${currentChengyu["phrase"]["zhCN"]}（${currentChengyu["phrase"]["zhHK"]}）`)
 		.setURL(ONLINE_DICT_LINK_FORMAT.replace('{chengyu}', currentChengyu["phrase"]["zhCN"]))
 		.setDescription(`${currentChengyu["phrase"]["zhPY"]}\n${currentChengyu["translations"]["enGB"]}`)
+		.setFooter(`Source: ${_chengyuDict['citation']['apa']} ${_chengyuDict['citation']['link']}`)
 		.setTimestamp(new Date());
 
 	const examples = currentChengyu['examples'];
 	for (let i = 0; i < examples.length; i++) {
-		chengyuEmbed.addField(`例句 ${i}`, `${examples[i]['zhCN']}\n${examples[i]['enGB']}`);
+		chengyuEmbed.addField(`例句 ${i+1}`, `${examples[i]['zhCN']}\n${examples[i]['enGB']}`);
 	}
 	
 	if ('primaryColour' in _config) {
@@ -121,9 +122,13 @@ function findIndexOfChengyu(searchTerm, chengyuDict) {
 	return found
 }
 
-function logInConsoleWithTime(string) {
-	const timeNow = new Date();
-	console.log(`${timeNow.getHours()}:${timeNow.getMinutes()};${timeNow.getSeconds()} ` + string);
+function logInConsoleWithTime(string, error=false) {
+	const out = `${new Date(`YYYY-MM-DD HH:mm:ss.sss`)} - ${string}`;
+	if (error) {
+		console.error(out);
+	} else {
+		console.log(out);
+	}
 }
 
 client.on('message', message => {
