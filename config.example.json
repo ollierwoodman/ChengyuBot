@@ -1,0 +1,9 @@
+{
+    "chengyuDictFilePath":              "./chengyu.json",
+    "loginToken":                       "BOT_LOGIN_TOKEN",
+    "hourToSendDailyChengyuMessageUTC": 12,
+    "dailyChengyuPingRoleId":           "000000000000000000",
+    "dailyChengyuMessageChannelId":     "000000000000000000",
+    "chengyuEmojiId":                   "000000000000000000",
+    "primaryColour":                    "0xffffff"
+}

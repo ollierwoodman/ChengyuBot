@@ -1,207 +1,123 @@
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client({ intents: [Discord.GatewayIntentBits.Guilds] });
 
-const cheerio = require('cheerio');
-const got = require('got');
 var fs = require('fs');
 
-//GLOBAL VARS
-const _configFile = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-var _chengyuDict = {
-	hanzi: "err",
-	pinyin: "err",
-	english: "err",
-	url: "err"
-};
-var _dailyChengyuEmbed; //global variable for the message embed to be stored
+const PERSISTENT_DAILY_CHENGYU_INDEX_FILEPATH = './index.txt';
+const FALLBACK_DAILY_CHENGYU_INDEX = 0;
+const ONLINE_DICT_LINK_FORMAT = "https://baike.baidu.com/item/{chengyu}"
 
-client.login(_configFile.loginToken);
+//GLOBAL VARS
+const _config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+const _chengyuDict = JSON.parse(fs.readFileSync(_config.chengyuDictFilePath, 'utf8'));
+var _currentDailyChengyuIndex = -1;
+
+client.login(_config.loginToken);
 
 //executes once client is logged in
 client.once('ready', () => {
+	console.log(`Ready! Logged in as ${c.user.tag}`);
 
-	getDailyChengyuURL();
-	//run main every certain number of minutes
-	const interval = setInterval(function() { main(); }, _configFile.minutesBetweenScrapes * 60 * 1000);
+	initDailyChengyuIndexValue();
 
+	const millisecondsInADay = 86400000;
+	const timeToNewDailyChengyu = new Date(now.getFullYear(), now.getMonth(), now.getDate(), _config.hourToSendDailyChengyuMessageUTC, 0, 0, 0) - now;
+	if (timeToNewDailyChengyu < 0) {
+		timeToNewDailyChengyu += millisecondsInADay; // it's after 10am, try 10am tomorrow.
+	}
+	const timeout = setTimeout(function() { startDailyChengyuLoop(); }, timeToNewDailyChengyu);
 });
 
-//main function that gets looped each interval
-function main() {
+//starts the daily chengyu loop
+function startDailyChengyuLoop() {
+	const millisecondsInADay = 86400000;
+	const interval = setInterval(function() { newDailyChengyu(); }, millisecondsInADay);
+}
+
+function initDailyChengyuIndexValue() {
+	if (fs.existsSync(PERSISTENT_DAILY_CHENGYU_INDEX_FILEPATH)) {
+		_currentDailyChengyuIndex = fs.readFileSync(PERSISTENT_DAILY_CHENGYU_INDEX_FILEPATH, 'utf8');
+	}
 	
-	var chengyuFile = returnJSONObjectFromJSONFile('./chengyu.json');
-	if (chengyuFile === null) {
-		chengyuFile = {hanzi:"err"};
+	if (_currentDailyChengyuIndex < 0) {
+		_currentDailyChengyuIndex = FALLBACK_DAILY_CHENGYU_INDEX;
 	}
-
-	if (chengyuFile.hanzi !== _chengyuDict.hanzi) {
-		sendDailyChengyuMessage();
-		overwriteChengyuFile(_chengyuDict.hanzi, _chengyuDict.pinyin, _chengyuDict.english, _chengyuDict.url)
-	}
-	else {
-		logInConsoleWithTime('Chengyu not new, no update.');
-	}
-	//get the daily chengyu for the next loop to check
-	getDailyChengyuURL();
-}
-
-function returnJSONObjectFromJSONFile(path) {
-	var strFileContent = fs.readFileSync(path, 'utf8');
-	if (isValidJSONString(strFileContent)) {
-		return JSON.parse(strFileContent);
-	} else {
-		return null;
+	
+	if (_currentDailyChengyuIndex >= _chengyuDict.phrases.length) {
+		_currentDailyChengyuIndex = FALLBACK_DAILY_CHENGYU_INDEX;
 	}
 }
 
-function isValidJSONString(str) {
-	try {
-		JSON.parse(str);
-	} catch (e) {
-		return false;
-	}
-	return true;
+//main function that gets looped each interval
+function newDailyChengyu() {
+	const newDailyChengyuIndex = getRandomChengyuIndex(_chengyuDict);
+	sendDailyChengyuMessage(buildChengyuEmbed(newDailyChengyuIndex));
+	_currentDailyChengyuIndex = newDailyChengyuIndex;
 }
 
-function overwriteChengyuFile(hanzi, pinyin, english, url) {
-	//create object to write to the json file
-	var chengyuObj = {
-		"hanzi":hanzi, 
-		"pinyin":pinyin, 
-		"english":english,
-		"url":url
-	};
-
-	jsonString = JSON.stringify(chengyuObj); //convert object to a string in the json format 
-
-	//write json string to file
-	fs.writeFile ("./chengyu.json", JSON.stringify(chengyuObj), function(err) {
-		if (err) throw err;
-		logInConsoleWithTime('Chengyu file overwritten');
-		}
-	);
-}
-
-//function to load the daily chengyu link
-//the data on this webpage changes about every 24 hours
-function getDailyChengyuURL() {
-	got(_configFile.chineseToolsDailyChengyuUrl).then(response => {
-
-		const $ = cheerio.load(response.body);
-
-		//scraping basic data from the daily chengyu page and saving it 
-		_chengyuDict.hanzi = $('div[class=ctCyRCn]').text();
-		_chengyuDict.pinyin = $('div[class=ctCyRPinyin]').text();
-		_chengyuDict.english = $('div[class=ctCyRDef]').text();
-		_chengyuDict.url = $('a[class=ctCyRMoreA]').attr('href');
-
-		logInConsoleWithTime('Daily chengyu scraped.');
-		
-		createDailyChengyuEmbed(_chengyuDict.url); //used the scraped url for the chengyu's full dictionary entry to create the embed
-
-	}).catch(err => {0-
-		logInConsoleWithTime('Scraping failed.');
-	});
-}
-
-//get the chengyu's dictionary entry and create an embed with the details scraped from it
-function createDailyChengyuEmbed(url) {
-
-	got(url).then(response => {
-
-		const $ = cheerio.load(response.body);
-
-		_dailyChengyuEmbed = new Discord.MessageEmbed()
-			.setColor('fd9854')
-			.setTitle('今日成语：' + _chengyuDict.hanzi)
-			.setURL(url)
-			.setDescription(_chengyuDict.pinyin + '\n' + _chengyuDict.english)
-			.setThumbnail('https://cdn.discordapp.com/emojis/730341301534326784.png')
-			.setTimestamp(new Date());
-
-		const details = $('div .ctCyC4').children();
-
-		for (let i = 0; i < details.length / 2; i++) {
-			_dailyChengyuEmbed.addField(details.eq(i * 2).text(), details.eq(i * 2 + 1).text());
-		}
-
-		logInConsoleWithTime('Channel embed created with extra details.');
-
-	//if the dictionary entry scrape fails, create a basic chengyu message
-	}).catch(err => {
-
-		_dailyChengyuEmbed = {
-			color: 0xfd9854,
-			title: _chengyuDict.hanzi,
-			thumbnail: {
-				url: 'https://cdn.discordapp.com/emojis/730341301534326784.png',
-			},
-			description: (_chengyuDict.pinyin + '\n' + _chengyuDict.english),
-			url: chengyuUrl,
-			timestamp: new Date(),
-		};
-
-		logInConsoleWithTime('Channel embed created without extra details.');
-	});
+function getRandomChengyuIndex(chengyuEntries) {
+	return Math.floor(Math.random() * (chengyuEntries.entries.length - 1));
 }
 
 //sends the daily chengyu embed to the designated channel
-function sendDailyChengyuMessage() {
-	//if a pingable chengyu role is included in the config file
-	if (_configFile.chengyuRoleId) {
+function sendDailyChengyuMessage(embed) {
+	var messageText;
+	var consoleMessage;	
+
+	if ('chengyuRoleId' in _config) {
 		//send embed with role ping
-		client.channels.cache.get(_configFile.channelId).send('<@&' + _configFile.chengyuRoleId + '> 今天的成语来啦', { embed: _dailyChengyuEmbed })
-		.then(logInConsoleWithTime('Chengyu sent to channel with role ping'))
-		.catch(console.error);
+		messageText = '<@&' + _config.dailyChengyuPingRoleId + '> 今天的成语来啦';
+		consoleMessage = 'Chengyu sent to channel with role ping';
 	}
 	else {
 		//send embed without role ping
-		client.channels.cache.get(_configFile.channelId).send('今天的成语来啦', { embed: _dailyChengyuEmbed })
-		.then(logInConsoleWithTime('Chengyu sent to channel without role ping'))
-		.catch(console.error);
+		messageText = '今天的成语来啦';
+		consoleMessage = 'Chengyu sent to channel without role ping';
 	}
+
+	client.channels.cache.get(_config.dailyChengyuMessageChannelId).send(messageText, { embed: embed })
+		.then(logInConsoleWithTime(consoleMessage))
+		.catch(console.error);
 }
 
-function createSearchChengyuMessage(searchphrase) {
-	const chengyuUrl = 'https://www.chinese-tools.com/chinese/chengyu/dictionary/detail.html?q=' + searchphrase;
+function buildChengyuEmbed(chengyuIndex) {
+	const currentChengyu = _chengyuDict.entries[chengyuIndex]
 
-	got(chengyuUrl).then(response => {
+	let chengyuEmbed = new Discord.MessageEmbed()
+		.setTitle(`${currentChengyu["phrase"]["zhCN"]}（${currentChengyu["phrase"]["zhHK"]}）`)
+		.setUrl(ONLINE_DICT_LINK_FORMAT.replace('{chengyu}', currentChengyu["phrase"]["zhCN"]))
+		.setDescription(`${currentChengyu["phrase"]["zhPY"]}\n${currentChengyu["translations"]["enGB"]}`)
+		.setTimestamp(new Date());
 
-		const $ = cheerio.load(response.body);
+	const examples = currentChengyu['examples'];
+	for (let i = 0; i < examples.length; i++) {
+		chengyuEmbed.addField(`例句 ${i}`, `${examples[i]['zhCN']}\n${examples[i]['enGB']}`);
+	}
+	
+	if ('primaryColour' in _config) {
+		chengyuEmbed.setColor(_config.primaryColour)
+	} else {
+		chengyuEmbed.setColor(0xfd9854)
+	}
+	
+	if ('chengyuEmojiId' in _config) {
+		chengyuEmbed.setThumbnail('https://cdn.discordapp.com/emojis/' + _config.chengyuEmojiId + '.png')
+	}
 
-		let chengyuEmbed = new Discord.MessageEmbed()
-			.setColor('fd9854')
-			.setTitle($('div .ctCyC1').text())
-			.setURL(chengyuUrl)
-			.setDescription($('div .ctCyC2').eq(0).text() + '\n' + $('div .ctCyC2').eq(1).text())
-			.setThumbnail('https://cdn.discordapp.com/emojis/730341301534326784.png')
-			.setTimestamp(new Date());
+	return chengyuEmbed;
+}
 
-		const details = $('div .ctCyC4').children();
+function findIndexOfChengyu(searchTerm, chengyuDict) {		
+	var found = -1;
+	for (let i = 0; i < chengyuDict['entries'].length; i++) {
+		const entry = chengyuDict[i];
 
-		let i;
-		for (i = 0; i < details.length / 2; i++) {
-			chengyuEmbed.addField(details.eq(i * 2).text(), details.eq(i * 2 + 1).text());
+		if (searchTerm == entry['phrase']['zhCN'] || searchTerm == entry['phrase']['zhHK']) {
+			found = i;
+			break;
 		}
-
-		logInConsoleWithTime('Chengyu search successful');
-
-		return chengyuEmbed;
-
-	}).catch(err => {
-
-		let chengyuEmbed = {
-			color: 0xfd9854,
-			title: 'Error ',
-			thumbnail: {
-				url: 'https://cdn.discordapp.com/emojis/728711704644419730.png',
-			},
-			description: ('I could not find any chengyu called "' + message.content.slice(4) + '"\n' + '尴尬了，我没能搜到这个成语\n\nMaybe you can find it on Baidu (百度)\n百度一下，你就知道\n\n[Click here to search Baidu!](https://baike.baidu.com/search?word=' + message.content.slice(4) + '&pn=0&rn=0&enc=utf8)'),
-		};
-		logInConsoleWithTime('Chengyu search failed');
-
-		return chengyuEmbed;
-	});
+	}
+	return found
 }
 
 function logInConsoleWithTime(string) {
@@ -210,15 +126,26 @@ function logInConsoleWithTime(string) {
 }
 
 client.on('message', message => {
+	//searching for a chengyu
 	if (message.content.slice(0, 3) === '!cy' || message.content.slice(0, 3) === '！cy') {
-
-		message.channel.send({ embed: createSearchChengyuMessage(message.content.slice(4)) })
-			.then(logInConsoleWithTime(message.author.username + ' searched for a chengyu'))
+		const searchTerm = message.content.slice(4).trim();		
+		const index = findIndexOfChengyu(searchTerm, _chengyuDict);
+		if (index != -1) {
+			message.channel.send("Here's that 成语 you were looking for...", { embed: buildChengyuEmbed(index) })
+			.then(logInConsoleWithTime(`${message.author.username} searched for ${searchTerm} and I found it!`))
 			.catch(console.error);
-
+		} else {
+			message.channel.send(`I couldn't find ${searchTerm} in my records, sorry :(`)
+			.then(logInConsoleWithTime(`${message.author.username} searched for ${searchTerm} but I couldn't find it :(`))
+			.catch(console.error);
+		}
 	}
-	else if (message.content.includes(_chengyuDict.hanzi)) {
-		message.react(message.guild.emojis.cache.get(_configFile.orangeEmojiId))
+	//if someone sends a message that contains the daily chengyu
+	else if (
+		message.content.includes(_chengyuDict['entries'][_currentDailyChengyuIndex]['phrase']['zhCN'])
+		|| message.content.includes(_chengyuDict['entries'][_currentDailyChengyuIndex]['phrase']['zhHK'])
+	) {
+		message.react(message.guild.emojis.cache.get(_config.chengyuEmojiId))
 			.then(logInConsoleWithTime(message.author.username + ' used the daily chengyu'))
 			.catch(console.error);
 	}
