@@ -5,7 +5,7 @@ var fs = require('fs');
 
 const PERSISTENT_DAILY_CHENGYU_INDEX_FILEPATH = './index.txt';
 const FALLBACK_DAILY_CHENGYU_INDEX = 0;
-const ONLINE_DICT_LINK_FORMAT = "https://baike.baidu.com/item/{chengyu}"
+const ONLINE_DICT_LINK_FORMAT = "https://baike.baidu.com/item/{chengyu}";
 
 //GLOBAL VARS
 const _config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
@@ -111,7 +111,7 @@ function buildChengyuEmbed(chengyuIndex) {
 function findIndexOfChengyu(searchTerm, chengyuDict) {		
 	var found = -1;
 	for (let i = 0; i < chengyuDict['entries'].length; i++) {
-		const entry = chengyuDict[i];
+		const entry = chengyuDict['entries'][i];
 
 		if (searchTerm == entry['phrase']['zhCN'] || searchTerm == entry['phrase']['zhHK']) {
 			found = i;
