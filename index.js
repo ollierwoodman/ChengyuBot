@@ -86,7 +86,7 @@ function buildChengyuEmbed(chengyuIndex) {
 
 	let chengyuEmbed = new Discord.MessageEmbed()
 		.setTitle(`${currentChengyu["phrase"]["zhCN"]}（${currentChengyu["phrase"]["zhHK"]}）`)
-		.setUrl(ONLINE_DICT_LINK_FORMAT.replace('{chengyu}', currentChengyu["phrase"]["zhCN"]))
+		.setURL(ONLINE_DICT_LINK_FORMAT.replace('{chengyu}', currentChengyu["phrase"]["zhCN"]))
 		.setDescription(`${currentChengyu["phrase"]["zhPY"]}\n${currentChengyu["translations"]["enGB"]}`)
 		.setTimestamp(new Date());
 
