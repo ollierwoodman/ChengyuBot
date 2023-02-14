@@ -4,6 +4,9 @@
     "hourToSendDailyChengyuMessageUTC": 12,
     "dailyChengyuPingRoleId":           "000000000000000000",
     "dailyChengyuMessageChannelId":     "000000000000000000",
-    "chengyuEmojiId":                   "000000000000000000",
+    "chengyuEmoji": {
+        "id":                           "000000000000000000",
+        "key":                          "NAME_OF_EMOJI_IN_YOUR_SERVER"
+    },
     "primaryColour":                    "0xffffff"
 }

@@ -102,8 +102,8 @@ function buildChengyuEmbed(chengyuIndex) {
 		chengyuEmbed.setColor(0xfd9854)
 	}
 	
-	if ('chengyuEmojiId' in _config) {
-		chengyuEmbed.setThumbnail('https://cdn.discordapp.com/emojis/' + _config.chengyuEmojiId + '.png')
+	if ('chengyuEmoji' in _config) {
+		chengyuEmbed.setThumbnail('https://cdn.discordapp.com/emojis/' + _config.chengyuEmoji.id + '.png')
 	}
 
 	return chengyuEmbed;
@@ -151,7 +151,7 @@ client.on('message', message => {
 		message.content.includes(_chengyuDict['entries'][_currentDailyChengyuIndex]['phrase']['zhCN'])
 		|| message.content.includes(_chengyuDict['entries'][_currentDailyChengyuIndex]['phrase']['zhHK'])
 	) {
-		message.react(message.guild.emojis.cache.get(_config.chengyuEmojiId))
+		message.react(message.guild.emojis.cache.get(_config.chengyuEmoji.key))
 			.then(logInConsoleWithTime(message.author.username + ' used the daily chengyu'))
 			.catch(console.error);
 	}
