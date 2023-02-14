@@ -22,7 +22,7 @@ client.once('ready', () => {
 
 	const millisecondsInADay = 86400000;
 	const timeNow = new Date();
-	const timeToNewDailyChengyu = new Date(timeNow.getFullYear(), timeNow.getMonth(), timeNow.getDate(), _config.hourToSendDailyChengyuMessageUTC, 0, 0, 0) - timeNow;
+	var timeToNewDailyChengyu = new Date(timeNow.getFullYear(), timeNow.getMonth(), timeNow.getDate(), _config.hourToSendDailyChengyuMessageUTC, 0, 0, 0) - timeNow;
 	if (timeToNewDailyChengyu < 0) {
 		timeToNewDailyChengyu += millisecondsInADay; // it's after 10am, try 10am tomorrow.
 	}
