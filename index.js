@@ -123,7 +123,7 @@ function findIndexOfChengyu(searchTerm, chengyuDict) {
 }
 
 function logInConsoleWithTime(string, error=false) {
-	const out = `${new Date(`YYYY-MM-DD HH:mm:ss.sss`)} - ${string}`;
+	const out = `${new Date().toISOString()} - ${string}`;
 	if (error) {
 		console.error(out);
 	} else {
