@@ -9,11 +9,7 @@
   "author": "Oreo",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^14",
-    "eslint": "^8",
-    "puppeteer": "^19",
-    "request": "^2.88.2",
-    "request-promise": "^4.2.5"
+    "discord.js": "^14"
   },
   "description": " A Discord bot to help members of my Discord server learn Chinese idioms (chengyu). Server link: https://discord.gg/QzTgcuf9np"
 }
